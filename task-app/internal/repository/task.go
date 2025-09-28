@@ -7,7 +7,7 @@ import (
 
 var tasks = []model.Task{
     {ID: "1", Title: "Task 1", Description: "123"},
-    {ID: "1", Title: "Task 2", Description: "321"},
+    {ID: "2", Title: "Task 2", Description: "321"},
 }
 
 func FindAllTasks() []model.Task {

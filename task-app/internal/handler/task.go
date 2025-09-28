@@ -5,6 +5,11 @@ import (
     "task-app/internal/service"
 )
 
+func RegisterIndexRoutes(r *gin.Engine) {
+    group := r.Group("")
+    group.GET("", indexHtml)
+}
+
 func RegisterTaskRoutes(r *gin.Engine) {
     group := r.Group("/tasks")
     group.GET("", getAllTasks)
@@ -21,7 +26,14 @@ func getTaskByID(c *gin.Context) {
     task, err := service.GetTaskByID(id)
     if err != nil {
         c.JSON(404, gin.H{"error": "Task not found"})
-        return
     }
     c.JSON(200, task)
+}
+
+func indexHtml(c *gin.Context){
+    tasks := service.GetAllTasks()
+    c.HTML(200, "index.html", gin.H{
+        "Title": "Task Service",
+        "Tasks": tasks,
+	})
 }
