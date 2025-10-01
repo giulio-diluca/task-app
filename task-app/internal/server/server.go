@@ -8,11 +8,11 @@ import (
 func Start() {
     r := gin.Default()
 
-    r.LoadHTMLGlob("cmd/templates/*.html")
+    //r.LoadHTMLGlob("cmd/templates/*.html")
 
     // Register routes
+    //handler.RegisterIndexRoutes(r)
     handler.RegisterTaskRoutes(r)
-    handler.RegisterIndexRoutes(r)
-
+    
     r.Run() // default :8080
 }

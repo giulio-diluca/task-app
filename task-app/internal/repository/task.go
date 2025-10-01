@@ -1,8 +1,8 @@
 package repository
 
 import (
-    "fmt"
-    "task-app/internal/model"
+	"fmt"
+	"task-app/internal/model"
 )
 
 var tasks = []model.Task{
@@ -22,3 +22,25 @@ func FindTaskByID(id string) (model.Task, error) {
     }
     return model.Task{}, fmt.Errorf("task not found")
 }
+
+func CreateTask(newTask model.Task) {
+
+    tasks = append(tasks, newTask)
+
+}
+
+func DeleteTaskByID(id string) (string, error) {
+
+    var index int
+    for i, u := range tasks {
+        if u.ID == id {
+            index = i
+            break
+        }
+    }
+
+    tasks = append(tasks[:index], tasks[index+1:]...)
+    return id, fmt.Errorf("task not found")
+
+}
+
