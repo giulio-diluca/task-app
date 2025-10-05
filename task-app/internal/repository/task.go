@@ -29,7 +29,6 @@ func CreateTask(newTask model.Task) model.Task {
     
     maxID := 0
     for _, t := range tasks {
-        // Attempt to convert the string ID to an integer
         if currentID, err := strconv.Atoi(t.ID); err == nil {
             if currentID > maxID {
                 maxID = currentID

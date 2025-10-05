@@ -60,18 +60,15 @@ func postTask(c *gin.Context) {
 
 
 func updateTaskByID(c *gin.Context) {
-    // 1. Get ID from URL parameter
     id := c.Param("id")
 
     var updatedTaskData model.Task 
 
     if err := c.ShouldBindJSON(&updatedTaskData); err != nil {
-        // If the JSON is malformed or required fields are missing
         c.JSON(400, gin.H{"error": "Invalid JSON format: " + err.Error()})
         return
     }
 
-    // 4. Call the service function
     updatedTask, err := service.UpdateTaskByID(id, updatedTaskData)
     
     if err != nil {
