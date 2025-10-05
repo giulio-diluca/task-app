@@ -17,6 +17,7 @@ func RegisterTaskRoutes(r *gin.Engine) {
     group.GET("", getAllTasks)
     group.GET("/:id", getTaskByID)
     group.POST("", postTask)
+    group.PUT("/:id", updateTaskByID)
     group.DELETE("/:id", deleteTaskByID)
 }
 
@@ -40,6 +41,7 @@ func getTaskByID(c *gin.Context) {
         c.JSON(404, gin.H{"error": "Task not found"})
     }
     c.JSON(200, task)
+
 }
 
 func postTask(c *gin.Context) {
@@ -52,7 +54,33 @@ func postTask(c *gin.Context) {
     }
 
     service.PostTask(newTask)
-    c.IndentedJSON(200, newTask)
+    c.JSON(200, newTask)
+
+}
+
+
+func updateTaskByID(c *gin.Context) {
+    // 1. Get ID from URL parameter
+    id := c.Param("id")
+
+    var updatedTaskData model.Task 
+
+    if err := c.ShouldBindJSON(&updatedTaskData); err != nil {
+        // If the JSON is malformed or required fields are missing
+        c.JSON(400, gin.H{"error": "Invalid JSON format: " + err.Error()})
+        return
+    }
+
+    // 4. Call the service function
+    updatedTask, err := service.UpdateTaskByID(id, updatedTaskData)
+    
+    if err != nil {
+        c.JSON(404, gin.H{"error": err.Error()})
+        return
+    }
+
+    c.JSON(200, updatedTask)
+
 }
 
 func deleteTaskByID(c *gin.Context) {
@@ -64,5 +92,6 @@ func deleteTaskByID(c *gin.Context) {
 
     service.DeleteTaskByID(id)
     fmt.Println(task)
-    c.IndentedJSON(200, id)
+    c.JSON(200, id)
+
 }

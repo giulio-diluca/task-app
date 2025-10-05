@@ -17,6 +17,10 @@ func PostTask(newTask model.Task) {
     repository.CreateTask(newTask)
 }
 
+func UpdateTaskByID(id string, updatedTask model.Task) (model.Task, error) {
+    return repository.UpdateTaskByID(id, updatedTask)
+}
+
 func DeleteTaskByID(id string) (string, error) {
     return repository.DeleteTaskByID(id)
 }
