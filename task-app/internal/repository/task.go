@@ -13,7 +13,7 @@ import (
 // The global database handle (connection pool) for the repository package.
 var db *sql.DB
 
-// sync.Once ensures that the Connect function's body runs exactly once.
+// sync.Once is a synchronization primitive used to guarantee that a specific function (usually an expensive initialization step) is executed only one time, even if called simultaneously by multiple goroutines
 var once sync.Once
 
 // var tasks = []model.Task{
@@ -24,6 +24,8 @@ var once sync.Once
 var tasks = []model.Task{ }
 
 func Connect() {
+    
+    // sync.Once ensures that the Connect function's body runs exactly once.
     once.Do(func() {
         cfg := mysql.NewConfig()
         cfg.User = "root"
@@ -108,7 +110,6 @@ func FindTaskByID(id string) (model.Task, error) {
     return model.Task{}, fmt.Errorf("task not found")
 }
 
-
 func CreateTask(newTask model.Task) model.Task {
     
     maxID := 0
@@ -128,7 +129,6 @@ func CreateTask(newTask model.Task) model.Task {
     
     return newTask
 }
-
 
 func UpdateTaskByID(id string, updatedTaskData model.Task) (model.Task, error) {
 

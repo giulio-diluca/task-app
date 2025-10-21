@@ -8,7 +8,10 @@ import (
 
 func Start() {
 
+    // 1. Initialize the DB Connection Pool ONCE at startup
     repository.Connect()
+
+    // 2. Defer closing the pool until the application exits
     defer repository.CloseDB()
 
     r := gin.Default()
