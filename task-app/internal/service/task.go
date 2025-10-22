@@ -13,12 +13,27 @@ func GetTaskByID(id string) (model.Task, error) {
     return repository.FindTaskByID(id)
 }
 
-func PostTask(newTask model.Task) {
-    repository.CreateTask(newTask)
+func PostTask(newTask model.Task) (model.Task, error) {
+
+    updatedTask, err := repository.CreateTask(newTask)
+
+    if err != nil {
+        return model.Task{}, err
+    }
+    
+    return updatedTask, nil
 }
 
-func UpdateTaskByID(id string, updatedTask model.Task) (model.Task, error) {
-    return repository.UpdateTaskByID(id, updatedTask)
+func UpdateTaskByID(id string, updateTask model.Task) (model.Task, error) {
+
+    updatedTask, err := repository.UpdateTaskByID(id, updateTask)
+
+    if err != nil {
+        return model.Task{}, err
+    }
+
+    return updatedTask, nil
+
 }
 
 func DeleteTaskByID(id string) (string, error) {

@@ -15,9 +15,9 @@ docker exec -it task-app-sql-db mysql -u root -p
 
 mysql> show databases;
 mysql > connect task_app;
-mysql> create table task_app (id numeric,title varchar(20),description varchar(50));
+mysql> create table task_app (ID integer key auto_increment,Title varchar(20),Description varchar(50));
 mysql> show tables;
-mysql > insert into task_app values (1,'task t.1', 'task d.1');
+mysql > insert into task_app values ('1', 'task t.1', 'task d.1');
 mysql > select * from task_app;
 mysql > truncate table task_app;
 

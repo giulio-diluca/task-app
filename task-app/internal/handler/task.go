@@ -7,11 +7,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// func RegisterIndexRoutes(r *gin.Engine) {
-//     group := r.Group("")
-//     group.GET("", indexHtml)
-// }
-
 func RegisterTaskRoutes(r *gin.Engine) {
     group := r.Group("/tasks")
     group.GET("", getAllTasks)
@@ -20,14 +15,6 @@ func RegisterTaskRoutes(r *gin.Engine) {
     group.PUT("/:id", updateTaskByID)
     group.DELETE("/:id", deleteTaskByID)
 }
-
-// func indexHtml(c *gin.Context){
-//     tasks := service.GetAllTasks()
-//     c.HTML(200, "index.html", gin.H{
-//         "Title": "Task Service",
-//         "Tasks": tasks,
-// 	})
-// }
 
 func getAllTasks(c *gin.Context) {
     tasks := service.GetAllTasks()
@@ -53,8 +40,14 @@ func postTask(c *gin.Context) {
         return
     }
 
-    service.PostTask(newTask)
-    c.JSON(200, newTask)
+    createdTask, err := service.PostTask(newTask)
+
+    if err != nil {
+        c.JSON(500, gin.H{"error": "Failed to create task"})
+        return
+    }
+
+    c.JSON(201, createdTask)
 
 }
 
@@ -62,14 +55,16 @@ func postTask(c *gin.Context) {
 func updateTaskByID(c *gin.Context) {
     id := c.Param("id")
 
-    var updatedTaskData model.Task 
+    var updateTaskData model.Task 
 
-    if err := c.ShouldBindJSON(&updatedTaskData); err != nil {
+    if err := c.ShouldBindJSON(&updateTaskData); err != nil {
         c.JSON(400, gin.H{"error": "Invalid JSON format: " + err.Error()})
         return
     }
 
-    updatedTask, err := service.UpdateTaskByID(id, updatedTaskData)
+    updateTaskData.ID = id
+
+    updatedTask, err := service.UpdateTaskByID(id, updateTaskData)
     
     if err != nil {
         c.JSON(404, gin.H{"error": err.Error()})

@@ -7,55 +7,63 @@ import (
     "sync"
     "log"
     "github.com/go-sql-driver/mysql"
+    "github.com/spf13/viper"
 	"task-app/internal/model"
 )
 
-// The global database handle (connection pool) for the repository package.
-var db *sql.DB
+var (
+    db   *sql.DB
+    once sync.Once
+)
 
-// sync.Once is a synchronization primitive used to guarantee that a specific function (usually an expensive initialization step) is executed only one time, even if called simultaneously by multiple goroutines
-var once sync.Once
+func loadConfig() (model.DBConfig, error) {
+	var config model.DBConfig
+	
+	viper.SetConfigName("db_config")
+	viper.SetConfigType("yaml")
+    viper.AddConfigPath("../")
 
-// var tasks = []model.Task{
-//     {ID: "1", Title: "Task 1", Description: "D1"},
-//     {ID: "2", Title: "Task 2", Description: "D2"},
-// }
+	if err := viper.ReadInConfig(); err != nil {
+		return config, fmt.Errorf("failed to read config file: %w", err)
+	}
 
-var tasks = []model.Task{ }
+	if err := viper.UnmarshalKey("database", &config); err != nil {
+		return config, fmt.Errorf("failed to unmarshal database config: %w", err)
+	}
+
+	return config, nil
+}
 
 func Connect() {
-    
-    // sync.Once ensures that the Connect function's body runs exactly once.
-    once.Do(func() {
-        cfg := mysql.NewConfig()
-        cfg.User = "root"
-        cfg.Passwd = "12345"
-        cfg.Net = "tcp"
-        // This uses the HOST's port 3306, which Docker maps to the container.
-        cfg.Addr = "127.0.0.1:3306" 
-        cfg.DBName = "task_app"
+	once.Do(func() {
+		cfgData, err := loadConfig()
+		if err != nil {
+			log.Fatalf("FATAL: Could not load database configuration: %v", err)
+		}
+        
+		cfg := mysql.NewConfig()
+		cfg.User = cfgData.User
+        cfg.Passwd = cfgData.Passwd
+        cfg.Net = cfgData.Net
+        cfg.Addr = cfgData.Addr
+        cfg.DBName = cfgData.DBName
 
-        var err error
-        // sql.Open returns a DB handle (connection pool), not a connection.
-        db, err = sql.Open("mysql", cfg.FormatDSN())
-        if err != nil {
-            // A connection error at startup is fatal.
-            log.Fatalf("FATAL: Error opening database handle: %v", err)
-        }
 
-        // Set connection pool limits for a robust application
-        // (Example values - adjust based on your workload and DB server limits)
-        db.SetMaxOpenConns(25)
-        db.SetMaxIdleConns(10)
+		db, err = sql.Open("mysql", cfg.FormatDSN())
+		if err != nil {
+			log.Fatalf("FATAL: Error opening database handle: %v", err)
+		}
 
-        // Verify the connection is actually working
+		db.SetMaxOpenConns(cfgData.MaxOpenConns)
+		db.SetMaxIdleConns(cfgData.MaxIdleConns)
+
         pingErr := db.Ping()
-        if pingErr != nil {
-            db.Close() // Close the handle if the ping fails
-            log.Fatalf("FATAL: Error pinging database: %v", pingErr)
-        }
-        fmt.Println("Database Connected Successfully! (Pool established)")
-    })
+		if pingErr != nil {
+			db.Close()
+			log.Fatalf("FATAL: Error pinging database: %v", pingErr)
+		}
+		fmt.Println("Database Connected Successfully! (Pool established)")
+	})
 }
 
 func CloseDB() {
@@ -66,7 +74,6 @@ func CloseDB() {
 }
 
 func FindAllTasks() []model.Task {
-	// A simple check to ensure the connection was initialized
 	if db == nil {
 		log.Print("ERROR: Database connection not initialized when FindAllTasks was called.")
 		return nil
@@ -74,17 +81,14 @@ func FindAllTasks() []model.Task {
 
 	var tasks = []model.Task{}
 	
-	// db.Query draws a connection from the pool automatically
 	rows, err := db.Query("SELECT * FROM task_app")
 	if err != nil {
 		log.Printf("ERROR: Query failed: %v", err)
 		return nil
 	}
-	defer rows.Close() // ALWAYS defer rows.Close()
 
 	for rows.Next() {
 		var task model.Task
-		// Update Scan to match the columns in your table and fields in your model.Task struct
 		if err := rows.Scan(&task.ID, &task.Title, &task.Description); err != nil {
 			log.Printf("ERROR: Row scan failed: %v", err)
 			return nil
@@ -92,7 +96,6 @@ func FindAllTasks() []model.Task {
 		tasks = append(tasks, task)
 	}
 	
-	// Check for errors after the loop (important for some drivers)
 	if err := rows.Err(); err != nil {
 		log.Printf("ERROR: Rows iteration error: %v", err)
 		return nil
@@ -102,78 +105,131 @@ func FindAllTasks() []model.Task {
 }
 
 func FindTaskByID(id string) (model.Task, error) {
-    for _, u := range tasks {
-        if u.ID == id {
-            return u, nil
+
+    var task = model.Task{}
+
+	if db == nil {
+        errorMessage := "ERROR: Database connection not initialized when FindTaskByID was called."
+		log.Print(errorMessage)
+        return task, fmt.Errorf("%s", errorMessage)
+	}
+	
+	row := db.QueryRow("SELECT ID, Title, Description FROM task_app WHERE ID = ?", id)
+
+    err :=  row.Scan(&task.ID, &task.Title, &task.Description)
+
+	if err != nil {
+        if err == sql.ErrNoRows {
+            return task, fmt.Errorf("task with ID %s not found", id)
         }
-    }
-    return model.Task{}, fmt.Errorf("task not found")
+        errorMessage := fmt.Sprintf("ERROR: Failed to scan single row: %v", err)
+		log.Printf("%s", errorMessage)
+		return task, fmt.Errorf("%s", errorMessage)
+	}
+
+    return task, nil
 }
 
-func CreateTask(newTask model.Task) model.Task {
-    
-    maxID := 0
-    for _, t := range tasks {
-        if currentID, err := strconv.Atoi(t.ID); err == nil {
-            if currentID > maxID {
-                maxID = currentID
-            }
-        }
+func CreateTask(newTask model.Task) (model.Task, error) {
+
+    if db == nil {
+        errorMessage := "ERROR: Database connection not initialized when CreateTask was called."
+        log.Print(errorMessage)
+        return model.Task{}, fmt.Errorf("%s", errorMessage)
     }
 
-    newID := maxID + 1 
+    stmt := "INSERT INTO task_app (Title, Description) VALUES (?, ?)"
     
-    newTask.ID = strconv.Itoa(newID) 
+    result, err := db.Exec(stmt, newTask.Title, newTask.Description)
 
-    tasks = append(tasks, newTask)
+    if err != nil {
+        errorMessage := fmt.Sprintf("ERROR: Failed to insert new task: %v", err)
+        log.Printf("%s", errorMessage)
+        return model.Task{}, fmt.Errorf("%s", errorMessage)
+    }
+
+    lastID, err := result.LastInsertId()
     
-    return newTask
+    if err != nil {
+        errorMessage := fmt.Sprintf("CRITICAL ERROR: MySQL LastInsertId failed: %v", err)
+        log.Printf("%s", errorMessage)
+        return model.Task{}, fmt.Errorf("%s", errorMessage) 
+    }
+
+    newTask.ID = strconv.FormatInt(lastID, 10)
+    
+    log.Printf("DEBUG: Final Task before return: %+v", newTask)
+    
+    return newTask, nil
 }
 
-func UpdateTaskByID(id string, updatedTaskData model.Task) (model.Task, error) {
+func UpdateTaskByID(id string, updateTask model.Task) (model.Task, error) {
 
-    var index int
-    found := false
+    if db == nil {
+        errorMessage := "ERROR: Database connection not initialized when UpdateTaskByID was called."
+        log.Print(errorMessage)
+        return model.Task{}, fmt.Errorf("%s", errorMessage) 
+    }
 
-    for i, t := range tasks {
-        if t.ID == id {
-            index = i
-            found = true
-            break
+    stmt := "UPDATE task_app SET Title = ?, Description = ? WHERE ID = ?"
+    result, err := db.Exec(stmt, updateTask.Title, updateTask.Description, id)
+
+    if err != nil {
+        errorMessage := fmt.Sprintf("ERROR: Failed to execute update for ID %s: %v", id, err)
+        log.Printf("%s", errorMessage)
+        return model.Task{}, fmt.Errorf("%s", errorMessage)
+    }
+
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        errorMessage := fmt.Sprintf("WARNING: Update succeeded, but could not check rows affected for ID %s: %v", id, err)
+        log.Print(errorMessage)
+        return model.Task{}, fmt.Errorf("%s", errorMessage)
+    }
+
+    if rowsAffected == 0 {
+        _, existsErr := FindTaskByID(id) 
+        
+        if existsErr == sql.ErrNoRows {
+            errorMessage := fmt.Sprintf("Task with ID %s not found for update", id)
+            return model.Task{}, fmt.Errorf("%s", errorMessage)
+            
+        } else if existsErr != nil {
+            errorMessage := fmt.Sprintf("Error during post-update check: %v", existsErr)
+            return model.Task{}, fmt.Errorf("%s", errorMessage)
         }
     }
 
-    if !found {
-        return model.Task{}, fmt.Errorf("task with ID %s not found", id)
-    }
-
-    updatedTaskData.ID = id 
-    tasks[index] = updatedTaskData 
-    return tasks[index], nil
-
+    updateTask.ID = id
+    return updateTask, nil
 }
 
 func DeleteTaskByID(id string) (string, error) {
 
-    index := -1
-    for i, t := range tasks {
-        if t.ID == id {
-            index = i
-            break
-        }
+    if db == nil {
+        errorMessage := "ERROR: Database connection not initialized when DeleteTaskByID was called."
+        log.Print(errorMessage)
+        return "", fmt.Errorf("%s", errorMessage)
     }
 
-    if index == -1 {
+    stmt := "DELETE FROM task_app WHERE ID = ?"
+    
+    result, err := db.Exec(stmt, id)
+
+    if err != nil {
+        errorMessage := fmt.Sprintf("ERROR: Failed to delete task ID %s: %v", id, err)
+        log.Printf("%s", errorMessage)
+        return "", fmt.Errorf("%s", errorMessage)
+    }
+
+    rowsAffected, err := result.RowsAffected()
+    if err != nil {
+        log.Printf("WARNING: Delete succeeded, but could not check rows affected for ID %s: %v", id, err)
+    }
+
+    if rowsAffected == 0 {
         return "", fmt.Errorf("task with ID %s not found", id)
-    }
-
-    tasks = append(tasks[:index], tasks[index+1:]...)
-
-    for i := range tasks {
-        newID := i + 1
-        tasks[i].ID = strconv.Itoa(newID) 
     }
 
     return id, nil
 }
-
