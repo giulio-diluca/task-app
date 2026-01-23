@@ -1,0 +1,11 @@
+# go app
+database:
+  user: root                # Database username
+  password: 12345           # Database password
+  net: tcp                  # Network type (usually tcp)
+  addr: task-app-sql-db:3306 # Address: Use the container name for Docker-to-Docker comms
+  dbname: task_app          # The name of the database to connect to
+  max_open_conns: 25        # Maximum number of open connections to the database
+  max_idle_conns: 10        # Maximum number of connections in the idle connection pool
+  max_connect_retries: 10   # How many times the app tries to connect before crashing
+  retry_delay_seconds: 5    # Time to wait between each connection attempt

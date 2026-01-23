@@ -1,0 +1,52 @@
+x-task-app: &task-app
+    image: ghcr.io/giulio-diluca/task-app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./db_config.yaml:/app/db_config.yaml
+    networks:
+      - task-app-network
+    depends_on:
+      task-app-sql-db:
+        condition: service_healthy
+    command: /app/task-app-binary
+
+services:
+  task-app-sql-db:
+    image: mysql:8.0
+    container_name: task-app-sql-db
+    environment:
+      MYSQL_ROOT_USER: ${MYSQL_ROOT_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - task-app-sql-db-volume:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    networks:
+      - task-app-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u $MYSQL_ROOT_USER -p$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  task-app-1:
+    container_name: task-app-1
+    ports:
+      - "8080:8080"
+    <<: *task-app
+  task-app-2:
+    container_name: task-app-2
+    ports:
+      - "8081:8080"
+    <<: *task-app
+
+volumes:
+  task-app-sql-db-volume:
+
+networks:
+  task-app-network:
+    driver: bridge
+    name: task-app-network
