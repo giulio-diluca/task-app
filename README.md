@@ -170,3 +170,5 @@ MYSQL_ROOT_USER: root      # Database root username
 MYSQL_ROOT_PASSWORD: 12345 # Database root password
 MYSQL_DATABASE: task_app   # Database name
 ```
+
+TEST SECURITY
