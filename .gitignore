@@ -1,0 +1,44 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test output, caching, and dependency management
+# Compiled binaries for the current project
+/bin/
+/pkg/
+/tmp/
+
+# External Go dependencies (usually managed by go mod)
+# We generally ignore the vendor directory if using Go modules.
+# If you are using an older dependency management system (like dep or glide),
+# you might want to uncomment these, but for modern Go, they are typically included.
+vendor/
+Godeps/
+# Go module cache and build artifacts
+.cache/
+.test/
+.idea/
+.vscode/
+
+# Build cache directory (Go 1.10+)
+# This is usually local to the user's system, but good practice to ignore
+.go/
+.gopath/
+/go/pkg/
+
+# Generated files
+# For example, compiled protobufs or mock files often belong here
+**/*.pb.go
+**/*_mock.go
+# Common Operating System and Editor files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Settings
+db_config.yaml
+.env
