@@ -17,14 +17,14 @@ jobs:
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
-          username: ${{ vars.GHCR_IO_USERNAME }}
-          password: ${{ vars.GHCR_IO_TOKEN }}
+          username: ${{ secrets.GHCR_IO_USERNAME }}
+          password: ${{ secrets.GHCR_IO_TOKEN }}
 
       - name: extract docker image metadata
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ghrc.io/${{ vars.GHCR_IO_USERNAME }}/task-app
+          images: ghrc.io/${{ secrets.GHCR_IO_USERNAME }}/task-app
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v4
@@ -34,4 +34,4 @@ jobs:
         with:
           push: false
           set: |
-            *.tags=ghrc.io/${{ vars.GHCR_IO_USERNAME }}/task-app:latest
+            *.tags=ghrc.io/${{ secrets.GHCR_IO_USERNAME }}/task-app:latest
