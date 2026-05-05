@@ -41,3 +41,7 @@ jobs:
           annotations: ${{ steps.meta.outputs.annotations }}
           provenance: true
           sbom: true
+
+      - name: image ls
+        run: |
+          docker image ls
