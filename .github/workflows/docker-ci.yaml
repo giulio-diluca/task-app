@@ -9,7 +9,6 @@ on:
 env:
   REGISTRY: ghcr.io
   APP_NAME: task-app
-  IMAGE_NAME: ${{ env.REGISTRY }}/${{ vars.GHCR_IO_USERNAME }}/${{ env.APP_NAME }}
 
 jobs:
   docker:
@@ -29,7 +28,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v6
         with:
-          images: ${{ IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ vars.GHCR_IO_USERNAME }}/${{ env.APP_NAME }}
 
       - name: set up docker buildx
         uses: docker/setup-buildx-action@v4
