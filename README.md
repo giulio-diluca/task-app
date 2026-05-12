@@ -1,5 +1,6 @@
 # Task-App
 
+[![Build Status](https://github.com/giulio-diluca/task-app/actions/workflows/task-app-cicd.yml/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/task-app-cicd.yml)
 [![CodeQL](https://github.com/giulio-diluca/task-app/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/github-code-scanning/codeql)
 [![Dependency Graph](https://github.com/giulio-diluca/task-app/actions/workflows/dependabot/update-graph/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/dependabot/update-graph)
 
@@ -97,33 +98,6 @@ go mod download
 go run cmd/main.go
 ```
 
-## 📦 GitHub Packages (GHCR) Integration
-This project is configured to be hosted on the GitHub Container Registry (GHCR).
-Currently you can't publish your own Docker image in the already existing Docker image `ghcr.io/giulio-diluca/task-app:latest` but of course you can build your own image as follow
-
-### 1. Authenticate with GitHub
-Before pushing, you must log in using a Personal Access Token (PAT) with `write:packages` permissions:
-```bash
-echo $CR_PAT | docker login ghcr.io -u YOUR_GITHUB_USERNAME --password-stdin
-```
-
-### 1.1 Pull from GitHub Packages
-If you want to use the already existing image without proceeding with Build and Push, use following command after authentication step
-```bash
-docker pull ghcr.io/giulio-diluca/task-app:latest
-```
-
-### 2. Build and Tag
-Build the image using the tag specified in your `docker-compose.yaml`:
-```bash
-docker build -t ghcr.io/YOUR_GITHUB_USERNAME/task-app:latest .
-```
-
-### 3. Push to GitHub Packages
-```
-docker push ghcr.io/YOUR_GITHUB_USERNAME/task-app:latest
-```
-
 ## 📡 API Endpoints
 The service provides a simple RESTful interface for Task CRUD operations:
 Method | Endpoint | Description                    | Request Body ( JSON ) |
@@ -173,3 +147,17 @@ MYSQL_ROOT_USER: root      # Database root username
 MYSQL_ROOT_PASSWORD: 12345 # Database root password
 MYSQL_DATABASE: task_app   # Database name
 ```
+
+## 🛠 CI/CD Pipeline
+The project includes a CI/CD pipeline located in `.github/workflows/task-app-cicd.yml`. 
+This workflow build and push task-app Docker image to **GitHub Container Registry (GHCR)**.
+Docker image on registry is named *ghcr.io/giulio-diluca/task-app:<TAG>**
+
+The pipeline runs both manual and automatic creating following tags based on Git branch
+- `main`: `latest`
+- `tag`: `tag` ( e.g 1.0.0 )
+- `feature/**`: `beta`
+
+Pipeline, with `docker/metadata-action`, handle automatic Docker image tag creation and attach also metadata on the built image.
+With sbom:true and provenance:true in `docker/build-push-action@v7`, we build a secure and transparent Docker image that is safe to use.
+
