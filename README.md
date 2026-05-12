@@ -1,6 +1,6 @@
 # Task-App
 
-[![Build Status](https://github.com/giulio-diluca/task-app/actions/workflows/task-app-cicd.yml/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/task-app-cicd.yml)
+[![task-app-cicd](https://github.com/giulio-diluca/task-app/actions/workflows/task-app-cicd.yaml/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/task-app-cicd.yaml)
 [![CodeQL](https://github.com/giulio-diluca/task-app/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/github-code-scanning/codeql)
 [![Dependency Graph](https://github.com/giulio-diluca/task-app/actions/workflows/dependabot/update-graph/badge.svg)](https://github.com/giulio-diluca/task-app/actions/workflows/dependabot/update-graph)
 
