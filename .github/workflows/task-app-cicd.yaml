@@ -1,4 +1,4 @@
-name: task-app-build-deploy
+name: task-app-cicd
 
 on:
   push:
