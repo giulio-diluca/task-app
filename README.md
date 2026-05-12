@@ -83,7 +83,7 @@ database:
 ```
 
 ### 2. Start the Database
-If you want to continue MySQL with Docker, you can still do it by not changing `addr` in configuration `db_config.yaml`, make sure to edit `.env` file properly and then execute `docker-compose` command
+If you want to continue MySQL with Docker, you can still do it by changing `addr` in configuration `db_config.yaml` with `127.0.0.1:3306`, make sure to edit `.env` file properly and then execute `docker-compose` command
 ```bash
 docker-compose up -d task-app-sql-db
 ```
