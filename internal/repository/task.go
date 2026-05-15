@@ -1,11 +1,13 @@
 package repository
 
 import (
-	"fmt"
-    "strconv"
+	"context"
     "database/sql"
+    "fmt"
+    "log/slog"
+    "os"
+    "strconv"
     "sync"
-    "log"
     "time"
     "github.com/go-sql-driver/mysql"
     "github.com/spf13/viper"
@@ -19,20 +21,16 @@ var (
 
 func loadConfig() (model.DBConfig, error) {
 	var config model.DBConfig
-	
 	viper.SetConfigName("db_config")
 	viper.SetConfigType("yaml")
     viper.AddConfigPath(".")      
 	viper.AddConfigPath("..")
-
 	if err := viper.ReadInConfig(); err != nil {
-		return config, fmt.Errorf("failed to read config file: %w", err)
+		return config, err
 	}
-
 	if err := viper.UnmarshalKey("database", &config); err != nil {
-		return config, fmt.Errorf("failed to unmarshal database config: %w", err)
+		return config, nil
 	}
-
 	return config, nil
 }
 
@@ -40,56 +38,55 @@ func Connect() {
 	once.Do(func() {
 		cfgData, err := loadConfig()
 		if err != nil {
-			log.Fatalf("FATAL: Could not load database configuration: %v", err)
+			slog.Error("failed to load database configuration", "error", err)
+            os.Exit(1)
 		}
-
-        // Build the MySQL configuration from config data
 		cfg := mysql.NewConfig()
 		cfg.User = cfgData.User
 		cfg.Passwd = cfgData.Passwd
 		cfg.Net = cfgData.Net
 		cfg.Addr = cfgData.Addr
 		cfg.DBName = cfgData.DBName
-        
-        // MySQL Connection retry
 		for i := 1; i <= cfgData.MaxConnectRetries; i++ {
-            // 1. Open the database handle
-            var openErr error
-            db, openErr = sql.Open("mysql", cfg.FormatDSN())
-            if openErr != nil {
-                log.Fatalf("FATAL: Error opening database handle: %v", openErr)
+            db, err = sql.Open("mysql", cfg.FormatDSN())
+            if err != nil {
+                slog.Error("error opening database handle", "error", err)
+                os.Exit(1)
             }
-
-			pingErr := db.Ping()
-			
-			if pingErr == nil {
-				db.SetMaxOpenConns(cfgData.MaxOpenConns)
-				db.SetMaxIdleConns(cfgData.MaxIdleConns)
-				fmt.Println("Database Connected Successfully! (Pool established)")
-				return
-			}
-
+            if err := db.Ping(); err == nil {
+                db.SetMaxOpenConns(cfgData.MaxOpenConns)
+                db.SetMaxIdleConns(cfgData.MaxIdleConns)
+                slog.Info("database connected successfully", "status", "pool_established", "addr", cfgData.Addr)
+                return
+            }
             db.Close()
-            
-			log.Printf("WARNING: Database connection failed (Attempt %d/%d): %v", i, cfgData.MaxConnectRetries, pingErr)
+            slog.Warn("database connection failed", "attempt", i, "max", cfgData.MaxConnectRetries)
+            if i < cfgData.MaxConnectRetries {
+                time.Sleep(time.Duration(cfgData.RetryDelaySeconds) * time.Second)
+            }
+        }
 
-			if i < cfgData.MaxConnectRetries {
-				log.Printf("Retrying connection in %d seconds...", time.Duration(cfgData.RetryDelaySeconds))
-				time.Sleep(time.Duration(cfgData.RetryDelaySeconds) * time.Second)
-			}
-		}
-        
-		log.Fatalf("FATAL: Failed to connect to database after %d retries.", cfgData.MaxConnectRetries)
-	})
+        slog.Error("failed to connect to database after retries", "attempts", cfgData.MaxConnectRetries)
+        os.Exit(1)
+    })
 }
 
 func CloseDB() {
     if db != nil {
-    db.Close()
-    fmt.Println("Database connection pool closed.")
+        db.Close()
+        slog.Info("database connection pool closed")
     }
 }
 
+func trackQuery(start time.Time, queryName string) {
+    elapsed := time.Since(start)
+    slog.Debug("database queri executed",
+        "query", queryName,
+        "latency_ms", elapsed.Milliseconds(),
+    )
+}
+
+// stopped here 15/05/2026
 func FindAllTasks() []model.Task {
 	if db == nil {
 		log.Print("ERROR: Database connection not initialized when FindAllTasks was called.")
